@@ -1,22 +1,34 @@
 import requests
+from get_prices_from_page import get_prices, get_max_price
 from selenium import webdriver
+from bs4 import BeautifulSoup
+import re
 
-url = "https://move.ru/arenda_kvartir/v_predelah_mkad/?limit=30"
+page = 1
 
+url = f"https://move.ru/arenda_kvartir/v_predelah_mkad/?page=1&limit=30"
 doc = requests.get(url)
+doc = BeautifulSoup(doc.text, "html.parser")
 
 
-def find_all(a_str, sub):
-    start = 0
-    while True:
-        start = a_str.find(sub, start)
-        if start == -1:
-            return
-        yield start
-        start += len(sub) # use start += 1 to find overlapping matches
+pages_numbers = doc.find_all(class_="pagination-block__page-link")
+numbers = [-1 if p.text.strip() == "..." else int(p.text.strip()) for p in pages_numbers]
+print(numbers)
+
+pages = numbers[-1]
+
+list_of_prices = list()
+max_price = 0
+link = ""
+
+for i in range(1, pages):
+    url = f"https://move.ru/arenda_kvartir/v_predelah_mkad/?page={i}&limit=30"
+    print(f"Смотрим на {i}-тую страницу")
+    m, l = get_max_price(url)
+    if max_price < m:
+        link = l
+    max_price = max(m, max_price)
+    print(max_price, link)
 
 
-t = doc.text
-all_indexes = find_all(t, "&#8381")
-for i in all_indexes:
-    print(t[i-26:i+20])
+
